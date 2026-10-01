@@ -46,6 +46,220 @@ public final class GraphAlgorithms {
         return copyPrefix(order, count);
     }
 
+    public static int[] recursiveDepthFirstSearch(Graph graph, int start) {
+        checkStart(graph, start);
+        int[] order = new int[graph.vertexCount()];
+        boolean[] visited = new boolean[graph.vertexCount()];
+        int[] count = {0};
+        recursiveDfs(graph, start, visited, order, count);
+        return copyPrefix(order, count[0]);
+    }
+
+    public static int[] recursiveBreadthFirstSearch(Graph graph, int start) {
+        checkStart(graph, start);
+        int[] queue = new int[graph.vertexCount()], order = new int[graph.vertexCount()];
+        boolean[] visited = new boolean[graph.vertexCount()];
+        int[] state = {0, 0};
+        queue[state[1]++] = start;
+        visited[start] = true;
+        recursiveBfs(graph, queue, state, visited, order);
+        return copyPrefix(order, state[0]);
+    }
+
+    public static int[] multiSourceBreadthFirstSearch(Graph graph, int[] sources) {
+        if (graph == null || sources == null) throw new IllegalArgumentException("Graph and sources cannot be null");
+        int vertices = graph.vertexCount(), head = 0, tail = 0, count = 0;
+        int[] queue = new int[vertices], order = new int[vertices];
+        boolean[] visited = new boolean[vertices];
+        for (int source : sources) {
+            checkStart(graph, source);
+            if (!visited[source]) {
+                visited[source] = true;
+                queue[tail++] = source;
+            }
+        }
+        while (head < tail) {
+            int current = queue[head++];
+            order[count++] = current;
+            for (int next = 0; next < vertices; next++) {
+                if (graph.hasEdge(current, next) && !visited[next]) {
+                    visited[next] = true;
+                    queue[tail++] = next;
+                }
+            }
+        }
+        return copyPrefix(order, count);
+    }
+
+    public static int connectedComponentsBfs(Graph graph) {
+        requireUndirected(graph);
+        return componentCount(graph, false);
+    }
+
+    public static int connectedComponentsDfs(Graph graph) {
+        requireUndirected(graph);
+        return componentCount(graph, true);
+    }
+
+    public static boolean hasUndirectedCycleBfs(Graph graph) {
+        requireUndirected(graph);
+        int vertices = graph.vertexCount();
+        boolean[] visited = new boolean[vertices];
+        int[] queue = new int[vertices], parent = new int[vertices];
+        for (int start = 0; start < vertices; start++) {
+            if (visited[start]) continue;
+            int head = 0, tail = 0;
+            visited[start] = true;
+            parent[start] = -1;
+            queue[tail++] = start;
+            while (head < tail) {
+                int current = queue[head++];
+                if (graph.hasEdge(current, current)) return true;
+                for (int next = 0; next < vertices; next++) {
+                    if (!graph.hasEdge(current, next)) continue;
+                    if (!visited[next]) {
+                        visited[next] = true;
+                        parent[next] = current;
+                        queue[tail++] = next;
+                    } else if (parent[current] != next) return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public static boolean hasUndirectedCycleDsu(Graph graph) {
+        requireUndirected(graph);
+        DisjointSet sets = new DisjointSet(graph.vertexCount());
+        for (int from = 0; from < graph.vertexCount(); from++) {
+            if (graph.hasEdge(from, from)) return true;
+            for (int to = from + 1; to < graph.vertexCount(); to++) {
+                if (graph.hasEdge(from, to) && !sets.union(from, to)) return true;
+            }
+        }
+        return false;
+    }
+
+    public static int[] topologicalSortDfs(Graph graph) {
+        if (!graph.isDirected()) throw new IllegalArgumentException("Topological sort requires a directed graph");
+        int vertices = graph.vertexCount();
+        byte[] state = new byte[vertices];
+        int[] output = new int[vertices], count = {0};
+        for (int vertex = 0; vertex < vertices; vertex++) {
+            if (state[vertex] == 0 && !topologicalDfs(graph, vertex, state, output, count)) {
+                throw new IllegalStateException("Graph contains a directed cycle");
+            }
+        }
+        reverse(output);
+        return output;
+    }
+
+    public static int[] shortestPathInDag(Graph graph, int source) {
+        checkStart(graph, source);
+        int[] order = topologicalSortDfs(graph);
+        int[] distance = new int[graph.vertexCount()];
+        for (int i = 0; i < distance.length; i++) distance[i] = INF;
+        distance[source] = 0;
+        for (int from : order) {
+            if (distance[from] == INF) continue;
+            for (int to = 0; to < graph.vertexCount(); to++) {
+                if (graph.hasEdge(from, to)) {
+                    int candidate = addDistance(distance[from], graph.weight(from, to));
+                    if (candidate < distance[to]) distance[to] = candidate;
+                }
+            }
+        }
+        return distance;
+    }
+
+    public static boolean isBipartite(Graph graph) {
+        int vertices = graph.vertexCount();
+        int[] colors = new int[vertices], queue = new int[vertices];
+        for (int start = 0; start < vertices; start++) {
+            if (colors[start] != 0) continue;
+            int head = 0, tail = 0;
+            colors[start] = 1;
+            queue[tail++] = start;
+            while (head < tail) {
+                int current = queue[head++];
+                for (int next = 0; next < vertices; next++) {
+                    if (!graph.hasEdge(current, next)) continue;
+                    if (colors[next] == 0) {
+                        colors[next] = -colors[current];
+                        queue[tail++] = next;
+                    } else if (colors[next] == colors[current]) return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    public static boolean isValidTree(Graph graph) {
+        requireUndirected(graph);
+        int vertices = graph.vertexCount();
+        if (vertices == 0) return true;
+        int edgeCount = 0;
+        for (int from = 0; from < vertices; from++) {
+            if (graph.hasEdge(from, from)) return false;
+            for (int to = from + 1; to < vertices; to++) if (graph.hasEdge(from, to)) edgeCount++;
+        }
+        return edgeCount == vertices - 1 && connectedComponentsBfs(graph) == 1;
+    }
+
+    public static int[][] stronglyConnectedComponents(Graph graph) {
+        if (!graph.isDirected()) throw new IllegalArgumentException("Strongly connected components require a directed graph");
+        int vertices = graph.vertexCount();
+        boolean[] visited = new boolean[vertices];
+        int[] finishOrder = new int[vertices], cursor = {0};
+        for (int vertex = 0; vertex < vertices; vertex++) {
+            if (!visited[vertex]) finishDfs(graph, vertex, visited, finishOrder, cursor);
+        }
+        Graph transpose = new Graph(vertices, true);
+        for (int from = 0; from < vertices; from++) {
+            for (int to = 0; to < vertices; to++) {
+                if (graph.hasEdge(from, to)) transpose.addEdge(to, from, graph.weight(from, to));
+            }
+        }
+        for (int i = 0; i < vertices; i++) visited[i] = false;
+        int[][] components = new int[vertices][];
+        int componentCount = 0;
+        for (int i = vertices - 1; i >= 0; i--) {
+            int start = finishOrder[i];
+            if (visited[start]) continue;
+            int[] component = new int[vertices], count = {0};
+            recursiveDfs(transpose, start, visited, component, count);
+            components[componentCount++] = copyPrefix(component, count[0]);
+        }
+        int[][] result = new int[componentCount][];
+        for (int i = 0; i < componentCount; i++) result[i] = components[i];
+        return result;
+    }
+
+    public static int[] redundantConnection(int[][] edges, int vertexCount) {
+        if (edges == null || vertexCount < 0) throw new IllegalArgumentException("Invalid graph input");
+        DisjointSet sets = new DisjointSet(vertexCount);
+        for (int[] edge : edges) {
+            if (edge == null || edge.length != 2) throw new IllegalArgumentException("Each edge must contain two vertices");
+            if (!sets.union(edge[0], edge[1])) return new int[] {edge[0], edge[1]};
+        }
+        return new int[0];
+    }
+
+    public static int numberOfProvinces(boolean[][] connected) {
+        if (connected == null) throw new IllegalArgumentException("Matrix cannot be null");
+        int vertices = connected.length;
+        for (boolean[] row : connected) {
+            if (row == null || row.length != vertices) throw new IllegalArgumentException("Matrix must be square");
+        }
+        DisjointSet sets = new DisjointSet(vertices);
+        for (int first = 0; first < vertices; first++) {
+            for (int second = first + 1; second < vertices; second++) {
+                if (connected[first][second] || connected[second][first]) sets.union(first, second);
+            }
+        }
+        return sets.components();
+    }
+
     public static boolean hasCycle(Graph graph) {
         if (graph.isDirected()) {
             byte[] state = new byte[graph.vertexCount()];
@@ -249,6 +463,80 @@ public final class GraphAlgorithms {
             } else if (next != parent) return true;
         }
         return false;
+    }
+
+    private static void recursiveDfs(Graph graph, int vertex, boolean[] visited, int[] order, int[] count) {
+        visited[vertex] = true;
+        order[count[0]++] = vertex;
+        for (int next = 0; next < graph.vertexCount(); next++) {
+            if (graph.hasEdge(vertex, next) && !visited[next]) recursiveDfs(graph, next, visited, order, count);
+        }
+    }
+
+    private static void recursiveBfs(Graph graph, int[] queue, int[] state, boolean[] visited, int[] order) {
+        if (state[0] == state[1]) return;
+        int current = queue[state[0]];
+        order[state[0]++] = current;
+        for (int next = 0; next < graph.vertexCount(); next++) {
+            if (graph.hasEdge(current, next) && !visited[next]) {
+                visited[next] = true;
+                queue[state[1]++] = next;
+            }
+        }
+        recursiveBfs(graph, queue, state, visited, order);
+    }
+
+    private static int componentCount(Graph graph, boolean depthFirst) {
+        if (graph == null) throw new IllegalArgumentException("Graph cannot be null");
+        int vertices = graph.vertexCount(), components = 0;
+        boolean[] visited = new boolean[vertices];
+        int[] work = new int[vertices];
+        for (int start = 0; start < vertices; start++) {
+            if (visited[start]) continue;
+            components++;
+            int head = 0, tail = 0;
+            work[tail++] = start;
+            visited[start] = true;
+            while (depthFirst ? tail > 0 : head < tail) {
+                int current = depthFirst ? work[--tail] : work[head++];
+                for (int next = 0; next < vertices; next++) {
+                    if (graph.hasEdge(current, next) && !visited[next]) {
+                        visited[next] = true;
+                        work[tail++] = next;
+                    }
+                }
+            }
+        }
+        return components;
+    }
+
+    private static boolean topologicalDfs(Graph graph, int vertex, byte[] state, int[] output, int[] count) {
+        state[vertex] = 1;
+        for (int next = 0; next < graph.vertexCount(); next++) {
+            if (!graph.hasEdge(vertex, next)) continue;
+            if (state[next] == 1 || (state[next] == 0 && !topologicalDfs(graph, next, state, output, count))) {
+                return false;
+            }
+        }
+        state[vertex] = 2;
+        output[count[0]++] = vertex;
+        return true;
+    }
+
+    private static void finishDfs(Graph graph, int vertex, boolean[] visited, int[] order, int[] cursor) {
+        visited[vertex] = true;
+        for (int next = 0; next < graph.vertexCount(); next++) {
+            if (graph.hasEdge(vertex, next) && !visited[next]) finishDfs(graph, next, visited, order, cursor);
+        }
+        order[cursor[0]++] = vertex;
+    }
+
+    private static void reverse(int[] values) {
+        for (int left = 0, right = values.length - 1; left < right; left++, right--) {
+            int value = values[left];
+            values[left] = values[right];
+            values[right] = value;
+        }
     }
 
     private static int addDistance(int first, int second) {

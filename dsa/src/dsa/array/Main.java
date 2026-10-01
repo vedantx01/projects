@@ -2,6 +2,8 @@ package dsa.array;
 
 import dsa.graph.Graph;
 import dsa.graph.GraphAlgorithms;
+import dsa.graph.GraphGridAlgorithms;
+import dsa.graph.GraphTraversalMetrics;
 import dsa.linked_list.DoublyLinkedListInt;
 import dsa.linked_list.LinkedListAlgorithms;
 import dsa.linked_list.LinkedListRepresentations;
@@ -10,6 +12,7 @@ import dsa.linked_list.SinglyLinkedListInt;
 import dsa.tree.AvlTreeInt;
 import dsa.tree.BinarySearchTreeInt;
 import dsa.tree.Trie;
+import dsa.tree.TreeAlgorithms;
 
 public final class Main {
     private Main() { }
@@ -264,8 +267,120 @@ public final class Main {
         checkArray(new int[] {0, 5, 3}, GraphAlgorithms.bellmanFord(directed, 0), "Bellman-Ford");
         check(GraphAlgorithms.floydWarshall(directed)[0][2] == 3
             && !GraphAlgorithms.hasCycle(directed), "Floyd-Warshall and cycle detection");
+        checkArray(new int[] {0, 1, 2}, GraphAlgorithms.recursiveDepthFirstSearch(directed, 0), "recursive DFS");
+        checkArray(new int[] {0, 1, 2}, GraphAlgorithms.recursiveBreadthFirstSearch(directed, 0), "recursive BFS");
+        checkArray(new int[] {0, 1, 2}, GraphAlgorithms.multiSourceBreadthFirstSearch(directed, new int[] {0, 1}),
+            "multi-source BFS");
+        check(GraphAlgorithms.connectedComponentsBfs(graph) == 1
+            && GraphAlgorithms.connectedComponentsDfs(graph) == 1, "components");
+        checkArray(new int[] {0, 5, 3}, GraphAlgorithms.shortestPathInDag(directed, 0), "DAG shortest path");
+        check(GraphAlgorithms.isBipartite(new Graph(0, false)), "empty graph bipartite");
+        Graph treeGraph = new Graph(4, false);
+        treeGraph.addEdge(0, 1);
+        treeGraph.addEdge(1, 2);
+        treeGraph.addEdge(1, 3);
+        check(GraphAlgorithms.isValidTree(treeGraph), "valid tree");
+        check(GraphAlgorithms.hasUndirectedCycleBfs(graph) && GraphAlgorithms.hasUndirectedCycleDsu(graph),
+            "undirected cycle detection");
+        checkArray(new int[] {2, 0}, GraphAlgorithms.redundantConnection(new int[][] {{0, 1}, {1, 2}, {2, 0}}, 3),
+            "redundant connection");
+        check(GraphAlgorithms.numberOfProvinces(new boolean[][] {{true, true, false}, {true, true, false}, {false, false, true}}) == 2,
+            "number of provinces");
+        Graph sccGraph = new Graph(5, true);
+        sccGraph.addEdge(0, 1);
+        sccGraph.addEdge(1, 2);
+        sccGraph.addEdge(2, 0);
+        sccGraph.addEdge(1, 3);
+        sccGraph.addEdge(3, 4);
+        sccGraph.addEdge(4, 3);
+        check(GraphAlgorithms.stronglyConnectedComponents(sccGraph).length == 2, "Kosaraju SCC");
+        check(GraphGridAlgorithms.numberOfIslands(new char[][] {
+            {'1', '1', '0'}, {'0', '1', '0'}, {'1', '0', '1'}}) == 3, "grid islands");
+        check(GraphGridAlgorithms.shortestPathBinaryMatrix(new int[][] {{0, 1}, {1, 0}}) == 2, "binary grid path");
+        int[][] fillImage = {{1, 1, 0}, {1, 0, 0}};
+        GraphGridAlgorithms.floodFill(fillImage, 0, 0, 2);
+        check(fillImage[0][0] == 2 && fillImage[1][0] == 2 && fillImage[0][2] == 0, "flood fill");
+
+        TreeAlgorithms.Node treeRoot = new TreeAlgorithms.Node(4);
+        treeRoot.left = new TreeAlgorithms.Node(2);
+        treeRoot.right = new TreeAlgorithms.Node(6);
+        treeRoot.left.left = new TreeAlgorithms.Node(1);
+        treeRoot.left.right = new TreeAlgorithms.Node(3);
+        treeRoot.right.left = new TreeAlgorithms.Node(5);
+        treeRoot.right.right = new TreeAlgorithms.Node(7);
+        check(TreeAlgorithms.size(treeRoot) == 7 && TreeAlgorithms.height(treeRoot) == 2
+            && TreeAlgorithms.countLeaves(treeRoot) == 4 && TreeAlgorithms.countInternalNodes(treeRoot) == 3,
+            "tree measurements");
+        checkArray(new int[] {1, 2, 3, 4, 5, 6, 7}, TreeAlgorithms.inorder(treeRoot), "tree inorder");
+        checkArray(new int[] {1, 2, 3, 4, 5, 6, 7}, TreeAlgorithms.inorderIterative(treeRoot), "iterative inorder");
+        checkArray(new int[] {4, 2, 1, 3, 6, 5, 7}, TreeAlgorithms.preorderIterative(treeRoot), "iterative preorder");
+        checkArray(new int[] {1, 3, 2, 5, 7, 6, 4}, TreeAlgorithms.postorderIterative(treeRoot), "iterative postorder");
+        checkArray(new int[] {4, 2, 6, 1, 3, 5, 7}, TreeAlgorithms.levelOrder(treeRoot), "tree level order");
+        checkArray(new int[] {6, 2}, TreeAlgorithms.zigzagLevelOrder(treeRoot)[1], "tree zigzag");
+        checkArray(new int[] {4, 2, 1, 3, 5, 7, 6}, TreeAlgorithms.boundaryTraversal(treeRoot), "tree boundary");
+        checkArray(new int[] {4, 2, 1}, TreeAlgorithms.leftView(treeRoot), "tree left view");
+        checkArray(new int[] {4, 6, 7}, TreeAlgorithms.rightView(treeRoot), "tree right view");
+        check(TreeAlgorithms.diameter(treeRoot) == 4 && TreeAlgorithms.isBalanced(treeRoot), "diameter/balance");
+        check(TreeAlgorithms.maximumPathSum(treeRoot) == 22 && TreeAlgorithms.maximumRootToLeafSum(treeRoot) == 17,
+            "tree path maximums");
+        check(TreeAlgorithms.countGoodNodes(treeRoot) == 3 && TreeAlgorithms.deepestLeavesSum(treeRoot) == 16,
+            "tree path and level aggregates");
+        check(TreeAlgorithms.maximumWidth(treeRoot) == 4 && TreeAlgorithms.verticalOrder(treeRoot).length == 5,
+            "tree width and vertical order");
+        check(TreeAlgorithms.isValidBst(treeRoot) && TreeAlgorithms.kthSmallestBst(treeRoot, 4) == 4
+            && TreeAlgorithms.kthLargestBst(treeRoot, 2) == 6, "BST operations");
+        check(TreeAlgorithms.bstLca(treeRoot, 1, 3).value == 2, "BST LCA");
+        check(TreeAlgorithms.countPathSums(treeRoot, 7) == 2, "tree path sum count");
+        check(TreeAlgorithms.lowestCommonAncestor(treeRoot, 1, 7).value == 4, "binary tree LCA");
+        checkArray(new int[] {6}, TreeAlgorithms.nodesAtDistanceK(treeRoot, 2, 2), "nodes distance K");
+        checkArray(TreeAlgorithms.inorder(treeRoot),
+            TreeAlgorithms.inorder(TreeAlgorithms.deserialize(TreeAlgorithms.serialize(treeRoot))), "serialize tree");
+        checkArray(TreeAlgorithms.inorder(treeRoot), TreeAlgorithms.morrisInorder(treeRoot), "Morris inorder");
+        checkArray(TreeAlgorithms.preorder(treeRoot), TreeAlgorithms.morrisPreorder(treeRoot), "Morris preorder");
+        checkArray(new int[] {1, 2, 3, 4, 5, 6, 7}, TreeAlgorithms.inorder(
+            TreeAlgorithms.buildFromInorderPreorder(new int[] {1, 2, 3, 4, 5, 6, 7},
+                new int[] {4, 2, 1, 3, 6, 5, 7})), "construct tree");
+        checkArray(TreeAlgorithms.inorder(treeRoot), TreeAlgorithms.inorder(
+            TreeAlgorithms.buildFromInorderPostorder(new int[] {1, 2, 3, 4, 5, 6, 7},
+                new int[] {1, 3, 2, 5, 7, 6, 4})), "construct postorder");
+        check(TreeAlgorithms.bstFromSortedArray(new int[] {1, 2, 3, 4, 5}).value == 3
+            && TreeAlgorithms.bstFromPreorder(new int[] {8, 5, 1, 7, 10, 12}).value == 8, "construct BSTs");
+
+        Graph chain = new Graph(6, false);
+        for (int i = 0; i < 5; i++) chain.addEdge(i, i + 1);
+        GraphTraversalMetrics.Metrics chainBfs = GraphTraversalMetrics.breadthFirstSearch(chain, 0);
+        GraphTraversalMetrics.Metrics chainRecursiveBfs = GraphTraversalMetrics.recursiveBreadthFirstSearch(chain, 0);
+        GraphTraversalMetrics.Metrics chainDfs = GraphTraversalMetrics.iterativeDepthFirstSearch(chain, 0);
+        GraphTraversalMetrics.Metrics chainRecursive = GraphTraversalMetrics.recursiveDepthFirstSearch(chain, 0);
+        check(chainBfs.visitedVertices == 6 && chainBfs.peakPendingVertices == 1
+            && chainBfs.neighborChecks == 36, "BFS metrics on chain");
+        check(chainDfs.peakPendingVertices == 1 && chainDfs.auxiliaryArrayBytesEstimate == 30,
+            "iterative DFS metrics on chain");
+        check(chainRecursiveBfs.peakRecursiveFrames == 6
+            && chainRecursiveBfs.auxiliaryPeakBytesEstimate > chainBfs.auxiliaryPeakBytesEstimate,
+            "recursive BFS memory metrics");
+        check(chainRecursive.peakRecursiveFrames == 6
+            && chainRecursive.auxiliaryPeakBytesEstimate > chainBfs.auxiliaryPeakBytesEstimate,
+            "recursive DFS memory metrics");
+        Graph star = new Graph(6, false);
+        for (int i = 1; i < 6; i++) star.addEdge(0, i);
+        check(GraphTraversalMetrics.breadthFirstSearch(star, 0).peakPendingVertices == 5
+            && GraphTraversalMetrics.iterativeDepthFirstSearch(star, 0).peakPendingVertices == 5
+            && GraphTraversalMetrics.recursiveDepthFirstSearch(star, 0).peakRecursiveFrames == 2
+            && GraphTraversalMetrics.recursiveBreadthFirstSearch(star, 0).peakRecursiveFrames == 6,
+            "BFS and DFS frontier metrics on star");
 
         System.out.println("All data structure and algorithm smoke tests passed.");
+        System.out.println("Memory model: " + chainBfs);
+        System.out.println("Memory model: " + chainRecursiveBfs);
+        System.out.println("Memory model: " + chainDfs);
+        System.out.println("Memory model: " + chainRecursive);
+        System.out.println("Star memory model: " + GraphTraversalMetrics.breadthFirstSearch(star, 0));
+        System.out.println("Star memory model: " + GraphTraversalMetrics.iterativeDepthFirstSearch(star, 0));
+        System.out.println("Star memory model: " + GraphTraversalMetrics.recursiveBreadthFirstSearch(star, 0));
+        System.out.println("Star memory model: " + GraphTraversalMetrics.recursiveDepthFirstSearch(star, 0));
+        System.out.println("Adjacency matrix storage estimate (6 vertices): "
+            + GraphTraversalMetrics.estimatedAdjacencyMatrixBytes(chain) + " bytes");
     }
 
     private static int[] copy(int[] source) {
